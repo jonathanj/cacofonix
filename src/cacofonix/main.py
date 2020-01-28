@@ -18,7 +18,7 @@ from ._util import (
     git_stage,
     pluralize,
     string_escape,
-    ensure_parent_exists)
+    ensure_dir_exists)
 
 
 pass_app = click.make_pass_decorator(Application)
@@ -85,7 +85,7 @@ def list_sections(app: Application):
               is_flag=True,
               default=None,
               help='Complete the changelog fragment in EDITOR')
-@click.option('--interactive',
+@click.option('--interactive / --no-interactive',
               is_flag=True,
               help='Complete the changelog fragment interactively')
 @pass_app
@@ -122,7 +122,7 @@ def compose(app: Application, interactive: bool, **kw):
                 raise SystemExit(2)
             # TODO: Validate `yaml_text`
 
-        with open(ensure_parent_exists(output_path), 'w') as fd:
+        with open(ensure_dir_exists(output_path), 'w') as fd:
             fd.write(yaml_text)
         echo_success('Wrote fragment {}'.format(output_path))
         git_stage(output_path)
