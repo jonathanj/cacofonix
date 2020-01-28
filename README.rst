@@ -15,7 +15,7 @@ For general use purposes:
 
 .. code:: bash
 
-   pip install git+ssh://git@github.com:jonathanj/cacofonix.git
+   pip3 install git+ssh://git@github.com:jonathanj/cacofonix.git
 
 
 For development purposes:
@@ -28,7 +28,7 @@ For development purposes:
    # Install the package with -e to use a "source" install, this runs the
    # package from source instead of installing it, avoiding the need to
    # continually install it when developing.
-   pip install -e .
+   pip3 install -e .
 
 After installing the package, a command-line script will installed that can be
 run as ``cacofonix``. If the script cannot be found then it is likely not on
