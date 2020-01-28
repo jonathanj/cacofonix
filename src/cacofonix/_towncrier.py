@@ -12,7 +12,7 @@ from ._types import Fragment, OutputType
 from .errors import InvalidChangeMetadata
 
 
-def render_fragment(fragment: Fragment) -> str:
+def render_fragment(fragment: Fragment, showcontent: bool) -> str:
     """
     Compile a fragment into towncrier-compatible content.
     """
@@ -45,6 +45,8 @@ def render_fragment(fragment: Fragment) -> str:
     else:
         raise InvalidChangeMetadata('Missing change description')
 
+    if not showcontent:
+        return issues_text
     return ''.join([
         description_first_text,
         feature_flag_text,

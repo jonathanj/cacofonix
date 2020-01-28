@@ -39,7 +39,7 @@ class TemporaryDirectory(object):
         self.path = None
 
 
-def ensure_parent_exists(path: str) -> str:
+def ensure_dir_exists(path: str) -> str:
     """
     Ensure that the parent of `path` exists, creating it and all subdirectories
     if necessary.

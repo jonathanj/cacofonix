@@ -129,3 +129,14 @@ class Config(object):
             'markdown': ['##', '###', '####'],
             'rest': ['=', '-', '~'],
         }[self.changelog_output_type]
+
+    def _towncrier_fragment_types(self):
+        """
+        Generate a `fragment_types` structure for towncrier.
+        """
+        def _fix_showcontent(d):
+            d['showcontent'] = True
+            return d
+        return {
+            key: _fix_showcontent(val)
+            for key, val in self.fragment_types.items()}

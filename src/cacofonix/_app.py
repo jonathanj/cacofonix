@@ -4,7 +4,7 @@ from typing import Iterable, List, Optional, TextIO, Tuple
 from . import _yaml
 from ._config import Config
 from .errors import InvalidChangeMetadata, FragmentCompilationError
-from ._util import ensure_parent_exists
+from ._util import ensure_dir_exists
 from ._towncrier import (
     render_fragment,
     render_changelog,
@@ -89,6 +89,8 @@ class Application(object):
                 try:
                     fragment = self.load_fragment(fd)
                     fragment_type = fragment.get('type')
+                    showcontent = self.config.fragment_types.get(
+                        fragment_type, {}).get('showcontent', True)
                     section = fragment.get('section') or None
                     filename = os.path.splitext(
                         os.path.basename(fragment_path))[0]
@@ -97,8 +99,10 @@ class Application(object):
                         *filter(None, [
                             section,
                             '{}.{}'.format(filename, fragment_type)]))
-                    with open(ensure_parent_exists(output_path), 'w') as fd:
-                        fd.write(render_fragment(fragment))
+                    rendered_content = render_fragment(fragment, showcontent)
+                    if rendered_content.strip():
+                        with open(ensure_dir_exists(output_path), 'w') as fd:
+                            fd.write(rendered_content)
                 except Exception:
                     raise FragmentCompilationError(fragment_path)
         return n
@@ -116,7 +120,7 @@ class Application(object):
             parent_dir,
             self.config.changelog_output_type,
             self.config.sections,
-            self.config.fragment_types,
+            self.config._towncrier_fragment_types(),
             self.config._towncrier_underlines(),
             project_version=project_version,
             project_date=project_date)
