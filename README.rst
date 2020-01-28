@@ -52,7 +52,8 @@ Cacofonix has two modes of operation:
 2. Compile a changelog from the existing change fragments, and merge these with
    an existing changelog.
 
-In both of these modes the required `--config` option must be specified first:
+In both of these modes the ``--config`` option (required) must be specified
+before the subcommand:
 
 .. code:: bash
 
