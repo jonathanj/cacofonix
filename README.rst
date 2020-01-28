@@ -15,7 +15,7 @@ For general use purposes:
 
 .. code:: bash
 
-   pip3 install git+ssh://git@github.com:jonathanj/cacofonix.git
+   pip3 install git+https://github.com/jonathanj/cacofonix.git
 
 
 For development purposes:
