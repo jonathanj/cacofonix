@@ -1,3 +1,4 @@
 include versioneer.py
 include src/cacofonix/_version.py
-include src/cacofonix/templates/default.tmpl
+include src/cacofonix/templates/towncrier_markdown.tmpl
+include src/cacofonix/templates/towncrier_rest.tmpl
