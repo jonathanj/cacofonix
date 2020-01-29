@@ -6,6 +6,8 @@ from aniso8601 import parse_date
 from collections import OrderedDict
 from datetime import date
 
+from ._app import Application
+
 
 def iso8601date(ctx, param, value):
     """
@@ -137,3 +139,19 @@ def compose_interactive(available_fragment_types, available_sections, **kw):
     ])
     kw.update(change_data)
     return kw
+
+
+def guess_version(ctx, param, value):
+    """
+    Try guess a version.
+    """
+    if value is not None:
+        return (None, value)
+    else:
+        app = ctx.find_object(Application)
+        value = app.guess_version()
+
+    if value is None:
+        raise click.BadParameter(
+            'Version cannot be guessed, provide it explicitly')
+    return value

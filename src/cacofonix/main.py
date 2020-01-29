@@ -11,7 +11,8 @@ from ._cli import (
     validate_fragment_type,
     validate_section,
     split_issues,
-    compose_interactive)
+    compose_interactive,
+    guess_version)
 from ._config import Config
 from ._util import (
     TemporaryDirectory,
@@ -142,7 +143,8 @@ def compose(app: Application, interactive: bool, **kw):
               help='Do not perform any permanent actions.')
 @click.option('--version', 'project_version',
               type=str,
-              required=True,
+              default=None,
+              callback=guess_version,
               help='Version for the changelog.')
 @click.option('--date', 'project_date',
               callback=iso8601date,
@@ -154,7 +156,7 @@ def compose(app: Application, interactive: bool, **kw):
 @pass_app
 def compile(app: Application,
             draft: bool,
-            project_version: str,
+            project_version: Tuple[Optional[str], str],
             project_date: datetime.date,
             remove_fragments: Optional[bool]):
     """
@@ -165,12 +167,16 @@ def compile(app: Application,
     """
     changelog_path = app.config.changelog_path
     with TemporaryDirectory() as parent_dir:
+        version_guess, version_number = project_version
+        if version_guess is not None:
+            echo('Guessed version {} via {}'.format(
+                version_number, version_guess))
         fragment_paths = list(app.find_all_fragments())
         n = app.compile_fragment_files(parent_dir, fragment_paths)
         echo('Found {} changelog fragments'.format(n))
         changelog = app.render_changelog(
             parent_dir=parent_dir,
-            project_version=project_version,
+            project_version=version_number,
             project_date=project_date.isoformat())
         if draft:
             echo_warning(
