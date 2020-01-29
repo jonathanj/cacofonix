@@ -28,6 +28,7 @@ pass_app = click.make_pass_decorator(Application)
 @click.option('--config',
               required=True,
               type=click.File())
+@click.version_option()
 @click.pass_context
 def cli(ctx, config: TextIO):
     """
