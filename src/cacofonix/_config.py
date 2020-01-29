@@ -84,15 +84,13 @@ class Config(object):
             {'markdown', 'rest'})
         validate_defined(config.get('changelog_path'),
                          'changelog_path')
-        change_fragments_path = validate_defined(
-            config.get('change_fragments_path'),
-            'change_fragments_path')
+        validate_defined(config.get('change_fragments_path'),
+                         'change_fragments_path')
 
         sections = default_sections.copy()
         sections.update([
             (title, dirname) for dirname, title
-            in (config.get('sections') or {}).items()
-            if os.path.exists(os.path.join(change_fragments_path, dirname))])
+            in (config.get('sections') or {}).items()])
         config['sections'] = sections
         return Config(**config)
 
