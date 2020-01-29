@@ -184,16 +184,16 @@ def compile(app: Application,
             project_version=version_number,
             project_date=project_date.isoformat())
         if draft:
-            echo_warning(
+            echo_info(
                 'Showing a draft changelog -- no actions will be performed!\n')
             echo_out(changelog)
             return
 
-        echo_warning('This is the new changelog to be added:\n')
+        echo_info('This is the new changelog to be added:\n')
         echo_out(changelog)
         if confirm_write:
             if not click.confirm('Merge this with the existing changelog?'):
-                echo_warning('Aborting at user request')
+                echo_info('Aborting at user request')
                 raise SystemExit(2)
 
         app.merge_with_existing_changelog(changelog)
@@ -213,7 +213,7 @@ def compile(app: Application,
                     for name in not_removed:
                         echo(name)
                 else:
-                    echo_warning(
+                    echo_info(
                         'Removed {} old {}.'.format(
                             n,
                             pluralize(n, 'fragment', 'fragments')))
@@ -229,7 +229,7 @@ def echo_partial(**kw):
 echo = echo_partial(err=True)
 echo_out = echo_partial()
 echo_error = echo_partial(fg='red', err=True)
-echo_warning = echo_partial(fg='yellow', err=True)
+echo_info = echo_partial(fg='yellow', err=True)
 echo_success = echo_partial(fg='green', err=True)
 
 
