@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Iterable, List, Optional, TextIO, Tuple
 
 from . import _yaml
@@ -133,3 +134,28 @@ class Application(object):
             self.config.changelog_path,
             self.config.changelog_marker,
             changelog)
+
+    def guess_version(self) -> Optional[str]:
+        """
+        Attempt to guess the software version.
+        """
+        guesses = [package_json]
+        for guess in guesses:
+            result = guess(os.getcwd())
+            if result is not None:
+                return result
+        return None
+
+
+def package_json(cwd):
+    """
+    Try guess a version from ``package.json``.
+    """
+    package_path = os.path.join(cwd, 'package.json')
+    if os.path.exists(package_path):
+        try:
+            with open(package_path, 'r') as fd:
+                return ('package.json', json.load(fd).get('version'))
+        except json.JSONDecodeError:
+            pass
+    return None
