@@ -153,12 +153,17 @@ def compose(app: Application, interactive: bool, **kw):
               is_flag=True,
               default=None,
               help='Delete old changelog fragments.')
+@click.option('--confirm / --no-confirm', 'confirm_write',
+              is_flag=True,
+              default=True,
+              help='Confirm before writing the changelog')
 @pass_app
 def compile(app: Application,
             draft: bool,
             project_version: Tuple[Optional[str], str],
             project_date: datetime.date,
-            remove_fragments: Optional[bool]):
+            remove_fragments: Optional[bool],
+            confirm_write: bool):
     """
     Compile change fragments into a changelog.
 
@@ -183,6 +188,13 @@ def compile(app: Application,
                 'Showing a draft changelog -- no actions will be performed!\n')
             echo_out(changelog)
             return
+
+        echo_warning('This is the new changelog to be added:\n')
+        echo_out(changelog)
+        if confirm_write:
+            if not click.confirm('Merge this with the existing changelog?'):
+                echo_warning('Aborting at user request')
+                raise SystemExit(2)
 
         app.merge_with_existing_changelog(changelog)
         echo_success('Wrote changelog {}'.format(changelog_path))
