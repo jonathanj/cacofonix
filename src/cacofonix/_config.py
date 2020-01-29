@@ -138,3 +138,12 @@ class Config(object):
         return {
             key: _fix_showcontent(val)
             for key, val in self.fragment_types.items()}
+
+    def _towncrier_sections(self):
+        """
+        Generate a `sections` structure for towncrier.
+        """
+        change_fragments_path = self.change_fragments_path
+        return {path: title for path, title in
+                self.sections.items()
+                if os.path.exists(os.path.join(change_fragments_path, path))}
