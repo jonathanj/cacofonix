@@ -44,7 +44,7 @@ class Application(object):
         """
         not_removed = []
         n = 0
-        for n, (dirname, filepaths) in enumerate(self.find_fragments()):
+        for n, (dirname, filepaths) in enumerate(self.find_fragments(), 1):
             for path in filepaths:
                 try:
                     os.remove(path)

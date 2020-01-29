@@ -190,19 +190,14 @@ def compile(app: Application,
             if remove_fragments:
                 n, not_removed = app.remove_fragments()
                 if not_removed:
-                    echo_error(
-                        'Could not remove the following:',
-                        fg='red',
-                        err=True)
+                    echo_error('Could not remove the following:')
                     for name in not_removed:
                         echo(name)
                 else:
                     echo_warning(
                         'Removed {} old {}.'.format(
                             n,
-                            pluralize(n, 'fragment', 'fragments')),
-                        fg='yellow',
-                        err=True)
+                            pluralize(n, 'fragment', 'fragments')))
 
 
 def echo_partial(**kw):
