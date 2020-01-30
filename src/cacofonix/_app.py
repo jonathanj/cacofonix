@@ -120,7 +120,7 @@ class Application(object):
         return render_changelog(
             parent_dir,
             self.config.changelog_output_type,
-            self.config._towncrier_sections(),
+            self.config._towncrier_sections(parent_dir),
             self.config._towncrier_fragment_types(),
             self.config._towncrier_underlines(),
             project_version=project_version,
