@@ -1,5 +1,5 @@
 # Path in which to find fragments.
-change_fragments_path: changes
+change_fragments_path: .changes
 # Path to the changelog to merge into.
 changelog_path: CHANGELOG.md
 # Marker to add new changes below.
