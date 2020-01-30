@@ -88,9 +88,7 @@ class Config(object):
                          'change_fragments_path')
 
         sections = default_sections.copy()
-        sections.update([
-            (title, dirname) for dirname, title
-            in (config.get('sections') or {}).items()])
+        sections.update(config.get('sections', {}))
         config['sections'] = sections
         return Config(**config)
 
@@ -98,7 +96,7 @@ class Config(object):
         """
         Names of available section keys.
         """
-        return self.sections.values()
+        return self.sections.keys()
 
     def has_section(self, section: str) -> bool:
         """
@@ -139,11 +137,10 @@ class Config(object):
             key: _fix_showcontent(val)
             for key, val in self.fragment_types.items()}
 
-    def _towncrier_sections(self):
+    def _towncrier_sections(self, parent_dir):
         """
         Generate a `sections` structure for towncrier.
         """
-        change_fragments_path = self.change_fragments_path
-        return {path: title for path, title in
+        return {title: path for path, title in
                 self.sections.items()
-                if os.path.exists(os.path.join(change_fragments_path, path))}
+                if os.path.exists(os.path.join(parent_dir, path))}
