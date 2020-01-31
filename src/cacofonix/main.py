@@ -13,6 +13,9 @@ from ._cli import (
     split_issues,
     compose_interactive,
     guess_version)
+from ._prompt import (
+    print_formatted_yaml_text,
+    prompt_confirm)
 from ._config import Config
 from ._util import (
     TemporaryDirectory,
@@ -98,6 +101,15 @@ def compose(app: Application, interactive: bool, **kw):
     Preset values can be given as options with the unspecified value being
     completed interactively or via a text editor.
     """
+    def _validate(yaml_text):
+        try:
+            app.validate_fragment_text(yaml_text)
+            return True
+        except Exception as e:
+            echo_error('Oops! There was a problem with your change data.')
+            echo(str(e))
+            return False
+
     def _compose(fragment_type: str,
                  section: Optional[str],
                  issues: List[Tuple[str, str]],
@@ -114,15 +126,34 @@ def compose(app: Application, interactive: bool, **kw):
                 string_escape(description or ''))),
         ])
         yaml_text = _yaml.dump(change_fragment_data)
-        if edit:
-            yaml_text = click.edit(
-                yaml_text,
-                require_save=False,
-                extension='.yaml')
-            if not yaml_text:
-                echo_error('Aborting composition!')
+
+        echo_info('\nOkay, this is your change:\n')
+        print_formatted_yaml_text(yaml_text)
+
+        edit = kw.get('edit')
+        if interactive:
+            if edit is None:
+                edit = prompt_confirm('Open it in your editor?')
+        else:
+            if not _validate(yaml_text):
                 raise SystemExit(2)
-            # TODO: Validate `yaml_text`
+
+        if edit:
+            while True:
+                yaml_text = click.edit(
+                    yaml_text,
+                    require_save=False,
+                    extension='.yaml')
+                if not yaml_text:
+                    echo_error('Aborting composition!')
+                    raise SystemExit(2)
+                if _validate(yaml_text):
+                    break
+                else:
+                    if not prompt_confirm('Open it in your editor?'):
+                        raise SystemExit(2)
+                    else:
+                        continue
 
         with open(ensure_dir_exists(output_path), 'w') as fd:
             fd.write(yaml_text)

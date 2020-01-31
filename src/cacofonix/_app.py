@@ -76,8 +76,18 @@ class Application(object):
         if section and not self.config.has_section(section):
             raise InvalidChangeMetadata(
                 'Missing or unknown section', section)
-
+        description = fragment.get('description')
+        if description is None or not description.strip():
+            raise InvalidChangeMetadata(
+                'Missing a change description')
         return fragment
+
+    def validate_fragment_text(self, fragment_text: Optional[str]) -> None:
+        """
+        Validate change fragment text.
+        """
+        fragment = _yaml.load(fragment_text)
+        self.validate_fragment(fragment)
 
     def compile_fragment_files(self, parent_dir: str,
                                fragment_paths: List[str]) -> int:

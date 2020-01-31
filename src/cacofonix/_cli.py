@@ -5,8 +5,16 @@ import time
 from aniso8601 import parse_date
 from collections import OrderedDict
 from datetime import date
+from typing import Iterable
 
 from ._app import Application
+from ._prompt import (
+    prompt_choice,
+    prompt_feature_flag,
+    prompt_issue,
+    prompt_many,
+    prompt_markdown,
+    required)
 
 
 def iso8601date(ctx, param, value):
@@ -74,68 +82,39 @@ def validate_or_generate_output_path(ctx, param, output_path):
     return output_path
 
 
-def compose_interactive(available_fragment_types, available_sections, **kw):
+def compose_interactive(
+        available_fragment_types: Iterable[str],
+        available_sections: Iterable[str],
+        **kw):
     """
     Create fragment compose parameters interactively.
 
     Provided values will act as defaults for their respective prompts.
     """
-    fragment_type = click.prompt(
+    fragment_type = prompt_choice(
         'Change type',
-        default=kw.get('fragment_type'),
-        type=click.Choice(available_fragment_types))
-    section = click.prompt(
-        'Section (press ENTER for default)',
-        default=kw.get('section') or '',
-        type=click.Choice(available_sections))
-    issues = kw.get('issues') or []
-    # Prompt for multiple issue numbers and URLs.
-    while True:
-        issue = click.prompt(
-            '{} number (press ENTER to skip)'.format(
-                'Another issue' if issues else 'Issue'),
-            default='',
-            type=str).strip()
-        issue_url = None
-        if issue:
-            while not issue_url:
-                issue_url = click.prompt(
-                    'URL for issue {}'.format(issue),
-                    default='',
-                    type=str).strip()
-            issues.append((issue, issue_url))
-        else:
-            break
-
-    # Prompt for multiple feature flags.
-    feature_flags = kw.get('feature_flags') or ()
-    while True:
-        feature_flag = click.prompt(
-            '{} flag (press ENTER to skip)'.format(
-                'Another feature' if feature_flags else 'Feature'),
-            default='',
-            type=str).strip()
-        if feature_flag:
-            feature_flags += (feature_flag,)
-        else:
-            break
-
-    description = click.prompt(
-        'Description',
-        default=kw.get('description'),
-        type=str).strip()
-
-    edit = kw.get('edit')
-    if edit is None:
-        edit = click.confirm('Edit saved fragment?')
-
+        choices=available_fragment_types,
+        default=kw.get('fragment_type') or '')
+    section = prompt_choice(
+        'Section',
+        choices=available_sections,
+        default=kw.get('section') or '')
+    issues = tuple(prompt_many(
+        prompt_issue,
+        kw.get('issues') or []))
+    feature_flags = tuple(prompt_many(
+        prompt_feature_flag,
+        kw.get('feature_flags', ())))
+    description = prompt_markdown(
+       'Description',
+       default=kw.get('description') or '',
+       validator=required).strip()
     change_data = OrderedDict([
         ('fragment_type', fragment_type),
         ('section', section),
         ('issues', issues),
         ('feature_flags', feature_flags),
         ('description', description),
-        ('edit', edit),
     ])
     kw.update(change_data)
     return kw
