@@ -1,0 +1,20 @@
+change_fragments_path: .changes
+changelog_path: CHANGELOG.rst
+changelog_marker: |
+  .. Generated release notes start.
+
+changelog_output_type: rest
+fragment_types:
+  feature:
+    title: Added
+  change:
+    title: Changed
+  bugfix:
+    title: Fixed
+  doc:
+    title: Documentation
+  removal:
+    title: Removed
+  misc:
+    title: Misc
+    showcontent: False
