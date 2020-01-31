@@ -1,9 +1,9 @@
 change_fragments_path: .changes
-changelog_path: CHANGELOG.rst
+changelog_path: CHANGELOG.md
 changelog_marker: |
-  .. Generated release notes start.
+  <!-- Generated release notes start. -->
 
-changelog_output_type: rest
+changelog_output_type: markdown
 fragment_types:
   feature:
     title: Added
