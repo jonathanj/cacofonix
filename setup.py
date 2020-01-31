@@ -45,5 +45,7 @@ setup(
         'towncrier @ git+https://github.com/hawkowl/towncrier.git#egg=towncrier',
         'pyyaml >= 5.3',
         'aniso8601 >= 8.0.0',
+        'prompt_toolkit >= 3.0.3',
+        'Pygments >= 2.5.2',
     ],
 )
