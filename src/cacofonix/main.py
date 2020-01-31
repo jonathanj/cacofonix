@@ -223,7 +223,7 @@ def compile(app: Application,
         echo_info('This is the new changelog to be added:\n')
         echo_out(changelog)
         if confirm_write:
-            if not click.confirm('Merge this with the existing changelog?'):
+            if not prompt_confirm('Merge this with the existing changelog?'):
                 echo_info('Aborting at user request')
                 raise SystemExit(2)
 
@@ -233,7 +233,7 @@ def compile(app: Application,
         echo_success('Staged {} in git'.format(changelog_path))
         if n:
             if remove_fragments is None:
-                remove_fragments = click.confirm(
+                remove_fragments = prompt_confirm(
                     'Remove {} {}?'.format(
                         n, pluralize(n, 'fragment', 'fragments')),
                     default=True)
