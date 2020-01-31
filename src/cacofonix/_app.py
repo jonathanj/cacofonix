@@ -5,7 +5,7 @@ from typing import Iterable, List, Optional, TextIO, Tuple
 from . import _yaml
 from ._config import Config
 from .errors import InvalidChangeMetadata, FragmentCompilationError
-from ._util import ensure_dir_exists
+from ._util import ensure_dir_exists, git_stage
 from ._towncrier import (
     render_fragment,
     render_changelog,
@@ -49,6 +49,7 @@ class Application(object):
             for path in filepaths:
                 try:
                     os.remove(path)
+                    git_stage(path)
                 except (OSError, FileNotFoundError):
                     not_removed.append(path)
             if dirname is not None:
