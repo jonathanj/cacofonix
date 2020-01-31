@@ -12,10 +12,39 @@ from ._types import Fragment, OutputType
 from .errors import InvalidChangeMetadata
 
 
-def render_fragment(fragment: Fragment, showcontent: bool) -> str:
+class MarkdownRenderer(object):
+    def link(self, text, url):
+        return f'[{text}]({url})'
+
+
+class RestructuredTextRenderer(object):
+    def link(self, text, url):
+        return f'`{text} <{url}>`'
+
+
+_renderers = {
+    'markdown': MarkdownRenderer(),
+    'rest': RestructuredTextRenderer(),
+}
+
+
+def _ticket_prefix(ticket):
+    """
+    Add an appropriate prefix to a ticket number.
+    """
+    if ticket.isdigit():
+        return f'#{ticket}'
+    return ticket
+
+
+def render_fragment(
+        fragment: Fragment,
+        showcontent: bool,
+        output_type: OutputType) -> str:
     """
     Compile a fragment into towncrier-compatible content.
     """
+    renderer = _renderers[output_type]
     feature_flag_text = ''
     feature_flags = fragment.get('feature_flags')
     if feature_flags:
@@ -30,8 +59,8 @@ def render_fragment(fragment: Fragment, showcontent: bool) -> str:
     if issues:
         issues_text = ' {}'.format(
            u' '.join(
-                '[{}]({})'.format(ticket, url)
-                for ticket, url in sorted(issues.items())))
+               renderer.link(_ticket_prefix(ticket), url)
+               for ticket, url in sorted(issues.items())))
 
     description_first_text = ''
     description_rest_text = ''

@@ -110,7 +110,10 @@ class Application(object):
                         *filter(None, [
                             section,
                             '{}.{}'.format(filename, fragment_type)]))
-                    rendered_content = render_fragment(fragment, showcontent)
+                    rendered_content = render_fragment(
+                        fragment,
+                        showcontent,
+                        self.config.changelog_output_type)
                     if rendered_content.strip():
                         with open(ensure_dir_exists(output_path), 'w') as fd:
                             fd.write(rendered_content)
