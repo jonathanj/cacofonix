@@ -1,11 +1,9 @@
 import click
-import os
-import secrets
-import time
 from aniso8601 import parse_date
 from collections import OrderedDict
 from datetime import date
-from typing import Iterable
+from semver import VersionInfo, parse_version_info
+from typing import Iterable, Optional
 
 from ._app import Application
 from ._prompt import (
@@ -65,23 +63,6 @@ def validate_section(ctx, param, value):
     return value
 
 
-def validate_or_generate_output_path(ctx, param, output_path):
-    """
-    Valid or generate the output path for composing a fragment.
-    """
-    config = ctx.obj.config
-    if output_path is None:
-        filename = '{}-{}.yaml'.format(
-            int(time.time() * 1000),
-            secrets.token_urlsafe(6))
-        output_path = os.path.join(config.change_fragments_path, filename)
-    if os.path.exists(output_path):
-        raise click.BadParameter(
-            'File already exists, refusing to overwrite {}'.format(
-                output_path))
-    return output_path
-
-
 def compose_interactive(
         available_fragment_types: Iterable[str],
         available_sections: Iterable[str],
@@ -120,7 +101,7 @@ def compose_interactive(
     return kw
 
 
-def guess_version(ctx, param, value):
+def guess_version(ctx, param, value) -> Optional[VersionInfo]:
     """
     Try guess a version.
     """
@@ -128,9 +109,9 @@ def guess_version(ctx, param, value):
         return (None, value)
     else:
         app = ctx.find_object(Application)
-        value = app.guess_version()
+        value = app.guess_version(app.effects.cwd_fs())
 
     if value is None:
         raise click.BadParameter(
             'Version cannot be guessed, provide it explicitly')
-    return value
+    return parse_version_info(value)

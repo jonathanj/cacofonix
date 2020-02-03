@@ -1,5 +1,6 @@
 import click
 import datetime
+from fs import open_fs
 from collections import OrderedDict
 from typing import Optional, List, Tuple, TextIO
 
@@ -7,7 +8,6 @@ from . import _yaml
 from ._app import Application
 from ._cli import (
     iso8601date,
-    validate_or_generate_output_path,
     validate_fragment_type,
     validate_section,
     split_issues,
@@ -18,29 +18,46 @@ from ._prompt import (
     prompt_confirm)
 from ._config import Config
 from ._util import (
-    TemporaryDirectory,
-    git_stage,
     pluralize,
-    string_escape,
-    ensure_dir_exists)
+    string_escape)
+from ._effects import make_effects
+from ._log import setup_logging
 
 
 pass_app = click.make_pass_decorator(Application)
 
 
 @click.group()
+@click.option('--dry-run', '-n', 'dry_run',
+              is_flag=True,
+              default=False,
+              help='''Perform a dry run.''')
+@click.option('--log-level',
+              default='ERROR',
+              type=click.Choice([
+                  'DEBUG',
+                  'INFO',
+                  'WARNING',
+                  'ERROR']))
 @click.option('--config',
               required=True,
               type=click.File())
 @click.version_option()
 @click.pass_context
-def cli(ctx, config: TextIO):
+def cli(ctx, config: TextIO, dry_run: bool, log_level: str):
     """
     Compose and compile change fragments into changelogs.
 
     New changes will be integrated into an existing changelog.
     """
-    ctx.obj = Application(Config.parse(config))
+    setup_logging(log_level)
+    root_fs = open_fs('.')
+    config = Config.parse(config)
+    ctx.obj = Application(
+        config=config,
+        effects=make_effects(root_fs, config, dry_run))
+    if dry_run:
+        echo_warning('Performing a dry run, no changes will be made!')
 
 
 @cli.command()
@@ -66,10 +83,17 @@ def list_sections(app: Application):
 
 
 @cli.command()
-@click.option('-o', '--output', 'output_path',
-              type=click.Path(writable=True, dir_okay=False),
-              callback=validate_or_generate_output_path,
-              help='Path to write the fragment to')
+@pass_app
+def list_versions(app: Application):
+    """
+    List all versions tracked by this tool.
+    """
+    for version in app.known_versions():
+        echo = echo_warning_out if version.prerelease else echo_out
+        echo(str(version))
+
+
+@cli.command()
 @click.option('-t', '--type', 'fragment_type',
               callback=validate_fragment_type,
               help='Fragment type, should match a value from `list-types`')
@@ -115,7 +139,6 @@ def compose(app: Application, interactive: bool, **kw):
                  issues: List[Tuple[str, str]],
                  feature_flags: List[str],
                  description: str,
-                 output_path: str,
                  edit: bool):
         change_fragment_data = OrderedDict([
             ('type', fragment_type),
@@ -147,6 +170,7 @@ def compose(app: Application, interactive: bool, **kw):
                 if not yaml_text:
                     echo_error('Aborting composition!')
                     raise SystemExit(2)
+
                 if _validate(yaml_text):
                     break
                 else:
@@ -155,16 +179,15 @@ def compose(app: Application, interactive: bool, **kw):
                     else:
                         continue
 
-        with open(ensure_dir_exists(output_path), 'w') as fd:
-            fd.write(yaml_text)
-        echo_success('Wrote fragment {}'.format(output_path))
-        git_stage(output_path)
+        fragment_filename = app.create_new_fragment(yaml_text)
+        echo_success('Wrote new fragment {}'.format(fragment_filename))
 
-    config = app.config
-    kw = kw if not interactive else compose_interactive(
-        available_sections=config.available_sections(),
-        available_fragment_types=config.available_fragment_types(),
-        **kw)
+    if interactive:
+        config = app.config
+        kw = compose_interactive(
+            available_sections=config.available_sections(),
+            available_fragment_types=config.available_fragment_types(),
+            **kw)
     return _compose(**kw)
 
 
@@ -173,17 +196,16 @@ def compose(app: Application, interactive: bool, **kw):
               is_flag=True,
               help='Do not perform any permanent actions.')
 @click.option('--version', 'project_version',
-              type=str,
               default=None,
               callback=guess_version,
-              help='Version for the changelog.')
-@click.option('--date', 'project_date',
+              help='Version to stamp in the changelog.')
+@click.option('--date', 'version_date',
               callback=iso8601date,
               help='ISO8601 date for the changelog, defaults to today.')
-@click.option('--delete / --no-delete', 'remove_fragments',
+@click.option('--archive / --no-archive', 'archive_fragments',
               is_flag=True,
               default=None,
-              help='Delete old changelog fragments.')
+              help='Archive fragments after writing a new changelog.')
 @click.option('--confirm / --no-confirm', 'confirm_write',
               is_flag=True,
               default=True,
@@ -192,8 +214,8 @@ def compose(app: Application, interactive: bool, **kw):
 def compile(app: Application,
             draft: bool,
             project_version: Tuple[Optional[str], str],
-            project_date: datetime.date,
-            remove_fragments: Optional[bool],
+            version_date: datetime.date,
+            archive_fragments: Optional[bool],
             confirm_write: bool):
     """
     Compile change fragments into a changelog.
@@ -201,53 +223,59 @@ def compile(app: Application,
     The existing changelog will be updated with the new changes, and the old
     change fragments discarded.
     """
-    changelog_path = app.config.changelog_path
-    with TemporaryDirectory() as parent_dir:
-        version_guess, version_number = project_version
-        if version_guess is not None:
-            echo('Guessed version {} via {}'.format(
-                version_number, version_guess))
-        fragment_paths = list(app.find_all_fragments())
-        n = app.compile_fragment_files(parent_dir, fragment_paths)
-        echo('Found {} changelog fragments'.format(n))
+    version_guess, version_number = project_version
+    if version_guess is not None:
+        echo('Guessed version {} via {}'.format(
+            version_number, version_guess))
+
+    new_fragments = list(app.find_new_fragments())
+
+    with open_fs('temp://') as tmp_fs:
+        n = app.compile_fragment_files(tmp_fs, new_fragments)
+        echo('Found {} new changelog fragments'.format(n))
         changelog = app.render_changelog(
-            parent_dir=parent_dir,
-            project_version=version_number,
-            project_date=project_date.isoformat())
-        if draft:
-            echo_info(
-                'Showing a draft changelog -- no actions will be performed!\n')
-            echo_out(changelog)
-            return
+            fs=tmp_fs,
+            version=version_number,
+            version_date=version_date)
 
-        echo_info('This is the new changelog to be added:\n')
+    if draft:
+        echo_info(
+            'Showing a draft changelog -- no changes will be made!\n')
         echo_out(changelog)
-        if confirm_write:
-            if not prompt_confirm('Merge this with the existing changelog?'):
-                echo_info('Aborting at user request')
-                raise SystemExit(2)
+        return
 
-        app.merge_with_existing_changelog(changelog)
-        echo_success('Wrote changelog {}'.format(changelog_path))
-        git_stage(changelog_path)
-        echo_success('Staged {} in git'.format(changelog_path))
-        if n:
-            if remove_fragments is None:
-                remove_fragments = prompt_confirm(
-                    'Remove {} {}?'.format(
-                        n, pluralize(n, 'fragment', 'fragments')),
-                    default=True)
-            if remove_fragments:
-                n, not_removed = app.remove_fragments()
-                if not_removed:
-                    echo_error('Could not remove the following:')
-                    for name in not_removed:
-                        echo(name)
-                else:
-                    echo_info(
-                        'Removed {} old {}.'.format(
-                            n,
-                            pluralize(n, 'fragment', 'fragments')))
+    echo_info('This is the changelog to be added:\n')
+    echo_out(changelog)
+    if confirm_write:
+        if not prompt_confirm('Merge this with the existing changelog?'):
+            echo_info('Aborting at user request')
+            raise SystemExit(2)
+
+    app.merge_with_existing_changelog(changelog)
+    echo_success('Wrote changelog.')
+
+    if n:
+        if archive_fragments is None:
+            archive_fragments = prompt_confirm(
+                'Archive {} {}?'.format(
+                    n, pluralize(n, 'fragment', 'fragments')),
+                default=True)
+        if archive_fragments:
+            n, not_removed = app.archive_fragments(
+                found_fragments=new_fragments,
+                version=version_number,
+                version_date=version_date,
+                version_author=app.effects.git_user())
+            if not_removed:
+                echo_error('Could not archive the following:')
+                for name in not_removed:
+                    echo(name)
+            else:
+                echo_info(
+                    'Archived {} {} as version {}.'.format(
+                        n,
+                        pluralize(n, 'fragment', 'fragments'),
+                        version_number))
 
 
 def echo_partial(**kw):
@@ -261,6 +289,8 @@ echo = echo_partial(err=True)
 echo_out = echo_partial()
 echo_error = echo_partial(fg='red', err=True)
 echo_info = echo_partial(fg='yellow', err=True)
+echo_warning = echo_partial(fg='bright_yellow', err=True)
+echo_warning_out = echo_partial(fg='bright_yellow')
 echo_success = echo_partial(fg='green', err=True)
 
 
