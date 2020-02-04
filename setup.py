@@ -42,12 +42,17 @@ setup(
         'Topic :: Software Development :: Build Tools',
     ],
     install_requires=[
-        'towncrier @ git+https://github.com/hawkowl/towncrier.git#egg=towncrier',
+        'towncrier @ git+https://github.com/hawkowl/towncrier.git#egg=towncrier',  # noqa
         'pyyaml >= 5.3',
         'aniso8601 >= 8.0.0',
-        'prompt_toolkit >= 3.0.3',
+        'prompt-toolkit >= 3.0.3',
         'Pygments >= 2.5.2',
         'semver >= 2.9.0',
         'fs >= 2.4.11',
     ],
+    extras_require={
+        'test': [
+            'pytest >= 5.3.5',
+        ],
+    },
 )

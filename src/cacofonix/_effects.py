@@ -108,8 +108,8 @@ def _dry_run_method(name: str):
 
 class DryRunSideEffects(SideEffects):
     """
-    Dry run side effects that change only temporary files or log actions instead
-    of performing them.
+    Dry run side effects that change only temporary files or log actions
+    instead of performing them.
     """
     git_mv = _dry_run_method('git_mv')
     git_stage = _dry_run_method('git_stage')
