@@ -84,7 +84,7 @@ class RealSideEffects(SideEffects):
         return self.fragments_fs.makedir(path, recreate=True)
 
     def changelog_fs(self) -> FS:
-        return self.root_fs
+        return self.root_fs.opendir('.')
 
     def git_mv(self, src, dst):
         check_call(['git', 'mv', src, dst])
