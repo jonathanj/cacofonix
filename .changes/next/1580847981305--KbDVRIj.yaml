@@ -1,0 +1,7 @@
+type: bugfix
+section: ''
+issues:
+  '7': https://github.com/jonathanj/cacofonix/issues/7
+feature_flags: []
+description: |-
+  Exception trying to detect software versions in package.json files.
