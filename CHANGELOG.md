@@ -4,6 +4,13 @@ Cacofonix issues are filed on [GitHub](https://github.com/jonathan/cacofonix/iss
 
 <!-- Generated release notes start. -->
 
+## [0.1.3] - 2020-02-04
+
+### Fixed
+
+- Exception trying to detect software versions in package.json files. [#7](https://github.com/jonathanj/cacofonix/issues/7)
+
+
 ## [0.1.2] - 2020-02-04
 
 ### Added
