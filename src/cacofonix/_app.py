@@ -20,7 +20,7 @@ from ._towncrier import (
     render_fragment,
     render_changelog,
     merge_with_existing_changelog)
-from ._types import Fragment, FoundFragment
+from ._types import Fragment, FoundFragment, GuessPair
 from ._effects import SideEffects
 
 
@@ -161,7 +161,7 @@ class Application(object):
         n = 0
         for n, (version_fs, filename) in enumerate(found_fragments, 1):
             try:
-                fragment = self.load_fragment(version_fs.gettext(filename))
+                fragment = self.load_fragment(version_fs.readtext(filename))
                 fragment_type = fragment.get('type')
                 showcontent = self.config.fragment_types.get(
                     fragment_type, {}).get('showcontent', True)
@@ -219,16 +219,11 @@ class Application(object):
                 changelog)
             self.effects.git_stage(changelog_path)
 
-    def guess_version(self, cwd_fs) -> Optional[str]:
+    def guess_version(self, cwd_fs: FS) -> Optional[str]:
         """
         Attempt to guess the software version.
         """
-        guesses = [package_json]
-        for guess in guesses:
-            result = guess(cwd_fs)
-            if result is not None:
-                return result
-        return None
+        return detect_version(cwd_fs)
 
     def known_versions(self) -> List[VersionInfo]:
         """
@@ -252,8 +247,24 @@ def package_json(cwd_fs: FS):
     if cwd_fs.exists('package.json'):
         log.debug('Guessing version with package.json')
         try:
-            return ('package.json',
-                    json.load(cwd_fs.gettext('package.json')).get('version'))
+            with cwd_fs.open('package.json', 'r') as fd:
+                return json.load(fd).get('version')
         except json.JSONDecodeError:
             pass
+    return None
+
+
+_default_guesses = [
+    ('package.json', package_json),
+]
+
+
+def detect_version(cwd_fs: FS, _guesses: List[GuessPair]) -> Optional[str]:
+    """
+    Make several attempts to guess the version of the package.
+    """
+    for kind, guess in _guesses:
+        result = guess(cwd_fs)
+        if result is not None:
+            return kind, result
     return None

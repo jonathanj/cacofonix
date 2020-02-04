@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Callable, Optional
 from fs.base import FS
 
 
@@ -8,3 +8,4 @@ Fragment = Dict[str, Any]
 # OutputType = Literal['markdown', 'rest']
 OutputType = str
 FoundFragment = Tuple[FS, str]
+GuessPair = Tuple[str, Callable[[FS], Optional[str]]]

@@ -13,7 +13,8 @@ def setup_logging(level):
 def _log_method(name):
     def __log_method(*a, **kw):
         global _logger
-        assert _logger is not None
+        if _logger is None:
+            _logger = logging
         return getattr(_logger, name)(*a, **kw)
     return __log_method
 

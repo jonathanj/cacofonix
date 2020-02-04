@@ -50,4 +50,9 @@ setup(
         'semver >= 2.9.0',
         'fs >= 2.4.11',
     ],
+    extras_require={
+        'test': [
+            'pytest >= 5.3.5',
+        ],
+    },
 )
