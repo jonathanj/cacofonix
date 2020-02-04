@@ -98,6 +98,8 @@ class Application(object):
                 log.debug(metadata)
                 archive_fs.settext(
                     self.METADATA_FILENAME, _yaml.dump(metadata))
+                metadata_path = archive_fs.getsyspath(self.METADATA_FILENAME)
+                self.effects.git_stage(metadata_path)
 
         return n, problems
 
