@@ -1,0 +1,8 @@
+type: feature
+section: ''
+issues:
+  '5': https://github.com/jonathanj/cacofonix/issues/5
+feature_flags: []
+description: |-
+  Fragments are now archived instead of deleted.
+  - The version number is used as the directory name with `next` being used for the as-yet-unreleased version.

@@ -47,5 +47,7 @@ setup(
         'aniso8601 >= 8.0.0',
         'prompt_toolkit >= 3.0.3',
         'Pygments >= 2.5.2',
+        'semver >= 2.9.0',
+        'fs >= 2.4.11',
     ],
 )

@@ -1,63 +1,124 @@
-import os
 import json
-from typing import Iterable, List, Optional, TextIO, Tuple
+import secrets
+import time
+from datetime import date
+from fs.base import FS
+from fs.path import join, dirname, basename, splitext
+from semver import VersionInfo, parse_version_info
+from typing import (
+    Iterable,
+    List,
+    Optional,
+    TextIO,
+    Tuple,
+    Union)
 
-from . import _yaml
+from . import _yaml, _log as log
 from ._config import Config
 from .errors import InvalidChangeMetadata, FragmentCompilationError
-from ._util import ensure_dir_exists, git_stage
 from ._towncrier import (
     render_fragment,
     render_changelog,
     merge_with_existing_changelog)
-from ._types import Fragment
+from ._types import Fragment, FoundFragment
+from ._effects import SideEffects
 
 
 class Application(object):
-    def __init__(self, config: Config):
+    METADATA_FILENAME: str = 'metadata.yaml'
+
+    def __init__(self, config: Config, effects: SideEffects):
         self.config = config
+        self.effects = effects
+        fragments_path = effects.fragments_fs.getsyspath('.')
+        log.debug(f'Fragments root: {fragments_path}')
 
     def load_fragment(self, fd: TextIO) -> Fragment:
+        """
+        Parse and validate a fragment from a stream.
+        """
         return self.validate_fragment(_yaml.load(fd))
 
-    def find_fragments(self) -> Iterable[Tuple[str, List[str]]]:
+    def find_fragments(
+            self,
+            version: Union[str, VersionInfo]
+    ) -> Iterable[FoundFragment]:
         """
+        Find all fragments for a particular verison.
         """
-        fragments_path = self.config.change_fragments_path
-        for dirpath, dirnames, filenames in os.walk(fragments_path):
-            yield (
-                None if dirpath == fragments_path else dirpath,
-                [os.path.join(dirpath, filename)
-                 for filename in filenames
-                 if os.path.splitext(filename)[-1] == '.yaml'])
+        log.debug(f'Finding fragments for version {version}')
+        version_fs = self.effects.fragments_fs.opendir(str(version))
+        matches = version_fs.filterdir(
+            '.',
+            files=['*.yaml'],
+            exclude_files=[self.METADATA_FILENAME])
+        for file_info in matches:
+            file_path = file_info.name
+            log.debug(f'Found {file_path}')
+            yield version_fs, file_path
 
-    def find_all_fragments(self) -> Iterable[str]:
+    def find_new_fragments(self) -> Iterable[FoundFragment]:
         """
-        Find all fragment files in the config value `change_fragments_path`.
+        Find fragment files for the next version.
         """
-        for dirpath, filepaths in self.find_fragments():
-            for path in filepaths:
-                yield path
+        return self.find_fragments('next')
 
-    def remove_fragments(self) -> Tuple[int, List[str]]:
+    def archive_fragments(
+            self,
+            found_fragments: Iterable[FoundFragment],
+            version: VersionInfo,
+            version_date: date,
+            version_author: str,
+    ) -> Tuple[int, List[str]]:
         """
-        Remove all fragment files in the config value `change_fragments_path`.
+        Archive new fragment, into the path for ``version``.
         """
-        not_removed = []
+        problems = []
         n = 0
-        for n, (dirname, filepaths) in enumerate(self.find_fragments(), 1):
-            for path in filepaths:
+        with self.effects.archive_fs(str(version)) as archive_fs:
+            log.info(f'Archiving for {version}')
+            for n, (version_fs, filename) in enumerate(found_fragments, 1):
                 try:
-                    os.remove(path)
-                    git_stage(path)
+                    path = version_fs.getsyspath(filename)
+                    archive_path = archive_fs.getsyspath(filename)
+                    log.info(f'Archive {path} -> {archive_path}')
+                    self.effects.git_mv(path, archive_path)
+                    self.effects.git_stage(archive_path)
                 except (OSError, FileNotFoundError):
-                    not_removed.append(path)
-            if dirname is not None:
-                try:
-                    os.rmdir(dirname)
-                except (OSError, FileNotFoundError):
-                    not_removed.append(dirname)
-        return n, not_removed
+                    log.exception(
+                        f'Unable to archive fragment: {version_fs} {filename}')
+                    problems.append(path)
+
+            if not problems:
+                log.info('Writing archival metadata')
+                metadata = {
+                    'date': version_date,
+                    'version': str(version),
+                    'author': version_author}
+                log.debug(metadata)
+                archive_fs.settext(
+                    self.METADATA_FILENAME, _yaml.dump(metadata))
+                metadata_path = archive_fs.getsyspath(self.METADATA_FILENAME)
+                self.effects.git_stage(metadata_path)
+
+        return n, problems
+
+    def create_new_fragment(self, yaml_text: str) -> str:
+        """
+        Generate a unique filename for a fragment, and write the content to it.
+        """
+        filename = '{}-{}.yaml'.format(
+            int(time.time() * 1000),
+            secrets.token_urlsafe(6))
+        with self.effects.archive_fs('next') as next_fs:
+            if next_fs.exists(filename):
+                raise RuntimeError(
+                    'Generated fragment name already exists!', filename)
+            path = next_fs.getsyspath(filename)
+            log.debug(f'Writing new fragment {path}')
+            next_fs.settext(filename, yaml_text)
+            self.effects.git_stage(path)
+            return filename
 
     def validate_fragment(self, fragment: Optional[Fragment]) -> Fragment:
         """
@@ -90,86 +151,109 @@ class Application(object):
         fragment = _yaml.load(fragment_text)
         self.validate_fragment(fragment)
 
-    def compile_fragment_files(self, parent_dir: str,
-                               fragment_paths: List[str]) -> int:
+    def compile_fragment_files(
+            self,
+            write_fs: FS,
+            found_fragments: Iterable[FoundFragment]) -> int:
         """
         Compile fragment files into `parent_dir`.
         """
         n = 0
-        for n, fragment_path in enumerate(fragment_paths, 1):
-            with open(fragment_path, 'rb') as fd:
-                try:
-                    fragment = self.load_fragment(fd)
-                    fragment_type = fragment.get('type')
-                    showcontent = self.config.fragment_types.get(
-                        fragment_type, {}).get('showcontent', True)
-                    section = fragment.get('section') or None
-                    filename = os.path.splitext(
-                        os.path.basename(fragment_path))[0]
-                    output_path = os.path.join(
-                        parent_dir,
-                        *filter(None, [
-                            section,
-                            '{}.{}'.format(filename, fragment_type)]))
-                    rendered_content = render_fragment(
-                        fragment,
-                        showcontent,
-                        self.config.changelog_output_type)
-                    if rendered_content.strip():
-                        with open(ensure_dir_exists(output_path), 'w') as fd:
-                            fd.write(rendered_content)
-                except Exception:
-                    raise FragmentCompilationError(fragment_path)
+        for n, (version_fs, filename) in enumerate(found_fragments, 1):
+            try:
+                fragment = self.load_fragment(version_fs.gettext(filename))
+                fragment_type = fragment.get('type')
+                showcontent = self.config.fragment_types.get(
+                    fragment_type, {}).get('showcontent', True)
+                section = fragment.get('section') or None
+                rendered_content = render_fragment(
+                    fragment,
+                    showcontent,
+                    self.config.changelog_output_type)
+                if rendered_content.strip():
+                    filename_stem = splitext(basename(filename))[0]
+                    output_path = join(*filter(None, [
+                        section,
+                        '{}.{}'.format(filename_stem, fragment_type)]))
+                    log.info(
+                        'Compiling {} -> {}'.format(
+                            version_fs.getsyspath(filename),
+                            write_fs.getsyspath(output_path)))
+                    parent_dir = dirname(output_path)
+                    if parent_dir:
+                        write_fs.makedirs(parent_dir, recreate=True)
+                    write_fs.writetext(output_path, rendered_content)
+            except Exception:
+                raise FragmentCompilationError(filename)
         return n
 
     def render_changelog(
             self,
-            parent_dir: str,
-            project_version: str,
-            project_date: str) -> str:
+            fs: FS,
+            version: VersionInfo,
+            version_date: date) -> str:
         """
         Find compiled fragments in `parent_dir` and render a changelog with
         them.
         """
+        parent_dir = fs.getsyspath('.')
         return render_changelog(
             parent_dir,
             self.config.changelog_output_type,
             self.config._towncrier_sections(parent_dir),
             self.config._towncrier_fragment_types(),
             self.config._towncrier_underlines(),
-            project_version=project_version,
-            project_date=project_date)
+            project_version=str(version),
+            project_date=version_date.isoformat())
 
     def merge_with_existing_changelog(self, changelog: str) -> None:
         """
         Merge a new changelog into an existing one.
         """
-        return merge_with_existing_changelog(
-            self.config.changelog_path,
-            self.config.changelog_marker,
-            changelog)
+        with self.effects.changelog_fs() as changelog_fs:
+            changelog_path = changelog_fs.getsyspath(
+                self.config.changelog_path)
+            merge_with_existing_changelog(
+                changelog_path,
+                self.config.changelog_marker,
+                changelog)
+            self.effects.git_stage(changelog_path)
 
-    def guess_version(self) -> Optional[str]:
+    def guess_version(self, cwd_fs) -> Optional[str]:
         """
         Attempt to guess the software version.
         """
         guesses = [package_json]
         for guess in guesses:
-            result = guess(os.getcwd())
+            result = guess(cwd_fs)
             if result is not None:
                 return result
         return None
 
+    def known_versions(self) -> List[VersionInfo]:
+        """
+        Sorted list of archived versions.
+        """
+        fragments_fs = self.effects.fragments_fs
+        return sorted(
+            (parse_version_info(info.name) for info in
+             fragments_fs.filterdir(
+                 '.',
+                 exclude_files=['*'],
+                 exclude_dirs=['next'])),
+            reverse=True)
 
-def package_json(cwd):
+
+def package_json(cwd_fs: FS):
     """
     Try guess a version from ``package.json``.
     """
-    package_path = os.path.join(cwd, 'package.json')
-    if os.path.exists(package_path):
+    log.debug('Looking for package.json')
+    if cwd_fs.exists('package.json'):
+        log.debug('Guessing version with package.json')
         try:
-            with open(package_path, 'r') as fd:
-                return ('package.json', json.load(fd).get('version'))
+            return ('package.json',
+                    json.load(cwd_fs.gettext('package.json')).get('version'))
         except json.JSONDecodeError:
             pass
     return None
