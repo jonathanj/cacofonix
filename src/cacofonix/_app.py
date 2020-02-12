@@ -259,7 +259,10 @@ _default_guesses = [
 ]
 
 
-def detect_version(cwd_fs: FS, _guesses: List[GuessPair]) -> Optional[str]:
+def detect_version(
+        cwd_fs: FS,
+        _guesses: List[GuessPair] = _default_guesses
+) -> Optional[str]:
     """
     Make several attempts to guess the version of the package.
     """
