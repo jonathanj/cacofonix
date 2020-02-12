@@ -106,7 +106,7 @@ def guess_version(ctx, param, value) -> Optional[VersionInfo]:
     Try guess a version.
     """
     if value is not None:
-        return (None, value)
+        return None, value
     else:
         app = ctx.find_object(Application)
         value = app.guess_version(app.effects.cwd_fs())
@@ -114,4 +114,6 @@ def guess_version(ctx, param, value) -> Optional[VersionInfo]:
     if value is None:
         raise click.BadParameter(
             'Version cannot be guessed, provide it explicitly')
-    return parse_version_info(value)
+
+    kind, value = value
+    return kind, parse_version_info(value)
