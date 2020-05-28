@@ -4,6 +4,14 @@ Cacofonix issues are filed on [GitHub](https://github.com/jonathan/cacofonix/iss
 
 <!-- Generated release notes start. -->
 
+## [0.1.5] - 2020-05-28
+
+### Fixed
+
+- Crash occurs when the `next` fragment directory doesn't exist. [#10](https://github.com/jonathanj/cacofonix/issues/10)
+- Change fragments with non-string keys cause a crash in Towncrier. [#9](https://github.com/jonathanj/cacofonix/issues/9)
+
+
 ## [0.1.3] - 2020-02-04
 
 ### Fixed
