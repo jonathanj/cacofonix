@@ -147,6 +147,7 @@ def prompt_markdown(message: PromptMessage, **kw) -> str:
     Prompt for a multiline Markdown input.
     """
     kb = KeyBindings()
+
     @kb.add('c-d')
     def _(event):
         event.current_buffer.validate_and_handle()
@@ -164,6 +165,7 @@ def prompt_confirm(message: PromptMessage, default=False, **kw) -> bool:
     Prompt for a yes/no response.
     """
     kb = KeyBindings()
+
     @kb.add('y', eager=True)
     @kb.add('n', eager=True)
     def one_key(event):
