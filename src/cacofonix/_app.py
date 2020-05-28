@@ -47,15 +47,18 @@ class Application(object):
         Find all fragments for a particular verison.
         """
         log.debug(f'Finding fragments for version {version}')
-        version_fs = self.effects.fragments_fs.opendir(str(version))
-        matches = version_fs.filterdir(
-            '.',
-            files=['*.yaml'],
-            exclude_files=[self.METADATA_FILENAME])
-        for file_info in matches:
-            file_path = file_info.name
-            log.debug(f'Found {file_path}')
-            yield version_fs, file_path
+        fragments_fs = self.effects.fragments_fs
+        name = str(version)
+        if fragments_fs.exists(name):
+            version_fs = fragments_fs.opendir(name)
+            matches = version_fs.filterdir(
+                '.',
+                files=['*.yaml'],
+                exclude_files=[self.METADATA_FILENAME])
+            for file_info in matches:
+                file_path = file_info.name
+                log.debug(f'Found {file_path}')
+                yield version_fs, file_path
 
     def find_new_fragments(self) -> Iterable[FoundFragment]:
         """
