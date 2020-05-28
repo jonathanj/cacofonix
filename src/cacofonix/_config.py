@@ -10,11 +10,12 @@ T = TypeVar('T')
 default_sections = OrderedDict([('', '')])
 
 default_fragment_types = OrderedDict([
-    (u'feature', {'name': u'Added', 'showcontent': True}),
-    (u'bugfix', {'name': u'Fixed', 'showcontent': True}),
-    (u'doc', {'name': u'Documentation', 'showcontent': True}),
-    (u'removal', {'name': u'Removed', 'showcontent': True}),
-    (u'misc', {'name': u'Misc', 'showcontent': False}),
+    (u'feature', {'title': u'Added', 'showcontent': True}),
+    (u'change', {'title': u'Changed', 'showcontent': True}),
+    (u'bugfix', {'title': u'Fixed', 'showcontent': True}),
+    (u'doc', {'title': u'Documentation', 'showcontent': True}),
+    (u'removal', {'title': u'Removed', 'showcontent': True}),
+    (u'misc', {'title': u'Misc', 'showcontent': False}),
 ])
 
 

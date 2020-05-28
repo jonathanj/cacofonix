@@ -1,0 +1,10 @@
+# Path in which to find fragments.
+change_fragments_path: fragments
+# Path to the changelog to merge into.
+changelog_path: CHANGELOG.md
+# Marker to add new changes below.
+changelog_marker: |
+  <!-- Generated release notes start. -->
+
+# Type of document to output, valid values are: markdown, rest
+changelog_output_type: markdown
