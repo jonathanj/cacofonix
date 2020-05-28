@@ -37,7 +37,9 @@ class Application(object):
         """
         Parse and validate a fragment from a stream.
         """
-        return self.validate_fragment(_yaml.load(fd))
+        fragment = _yaml.load(fd)
+        fragment['issues'] = {str(k): v for k, v in fragment.get('issues', {}).items()}
+        return self.validate_fragment(fragment)
 
     def find_fragments(
             self,
@@ -157,12 +159,12 @@ class Application(object):
     def compile_fragment_files(
             self,
             write_fs: FS,
-            found_fragments: Iterable[FoundFragment]) -> int:
+            found_fragments: Iterable[FoundFragment]) -> List[str]:
         """
         Compile fragment files into `parent_dir`.
         """
-        n = 0
-        for n, (version_fs, filename) in enumerate(found_fragments, 1):
+        outputs = []
+        for version_fs, filename in found_fragments:
             try:
                 fragment = self.load_fragment(version_fs.readtext(filename))
                 fragment_type = fragment.get('type')
@@ -186,9 +188,10 @@ class Application(object):
                     if parent_dir:
                         write_fs.makedirs(parent_dir, recreate=True)
                     write_fs.writetext(output_path, rendered_content)
+                    outputs.append(output_path)
             except Exception:
                 raise FragmentCompilationError(filename)
-        return n
+        return outputs
 
     def render_changelog(
             self,

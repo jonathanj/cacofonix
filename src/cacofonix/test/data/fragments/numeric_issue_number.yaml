@@ -1,0 +1,7 @@
+type: bugfix
+section: ''
+issues:
+  1234: https://example.com/
+feature_flags: []
+description: |-
+  An issue description.

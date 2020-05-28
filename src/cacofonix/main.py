@@ -231,7 +231,7 @@ def compile(app: Application,
     new_fragments = list(app.find_new_fragments())
 
     with open_fs('temp://') as tmp_fs:
-        n = app.compile_fragment_files(tmp_fs, new_fragments)
+        n = len(app.compile_fragment_files(tmp_fs, new_fragments))
         echo('Found {} new changelog fragments'.format(n))
         changelog = app.render_changelog(
             fs=tmp_fs,
