@@ -1,0 +1,7 @@
+type: bugfix
+section: ''
+issues:
+  '9': https://github.com/jonathanj/cacofonix/issues/9
+feature_flags: []
+description: |-
+  Change fragments with non-string keys cause a crash in Towncrier.
