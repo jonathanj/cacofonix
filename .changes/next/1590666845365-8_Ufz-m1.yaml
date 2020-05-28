@@ -1,0 +1,7 @@
+type: bugfix
+section: ''
+issues:
+  '10': https://github.com/jonathanj/cacofonix/issues/10
+feature_flags: []
+description: |-
+  Crash occurs when the `next` fragment directory doesn't exist.
