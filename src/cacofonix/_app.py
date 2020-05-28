@@ -38,7 +38,8 @@ class Application(object):
         Parse and validate a fragment from a stream.
         """
         fragment = _yaml.load(fd)
-        fragment['issues'] = {str(k): v for k, v in fragment.get('issues', {}).items()}
+        fragment['issues'] = {
+            str(k): v for k, v in fragment.get('issues', {}).items()}
         return self.validate_fragment(fragment)
 
     def find_fragments(

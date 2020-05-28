@@ -1,5 +1,4 @@
 import os.path
-import pytest
 from fs import open_fs
 from fs.base import FS
 from fs.wrap import read_only
