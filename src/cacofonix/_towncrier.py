@@ -109,10 +109,12 @@ def render_changelog(
         'templates/towncrier_rest.tmpl')
     template = pkgutil.get_data(__name__, template_name).decode('utf-8')
     issue_format = ''
+    top_line = ''
     wrap = False
     return render_fragments(
         template,
         issue_format,
+        top_line,
         fragments,
         fragment_types,
         underlines,
