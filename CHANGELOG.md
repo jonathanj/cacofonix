@@ -4,6 +4,13 @@ Cacofonix issues are filed on [GitHub](https://github.com/jonathan/cacofonix/iss
 
 <!-- Generated release notes start. -->
 
+## [0.1.6] - 2021-01-22
+
+### Fixed
+
+- Fix `render_fragment` code broken by upstream Towncrier changes.
+
+
 ## [0.1.5] - 2020-05-28
 
 ### Fixed
