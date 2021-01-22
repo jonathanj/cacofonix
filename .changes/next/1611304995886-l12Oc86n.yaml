@@ -1,0 +1,6 @@
+type: bugfix
+section: ''
+issues: {}
+feature_flags: []
+description: |-
+  Fix `render_fragment` code broken by upstream Towncrier changes.
