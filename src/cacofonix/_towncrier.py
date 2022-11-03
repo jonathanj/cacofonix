@@ -133,9 +133,7 @@ def merge_with_existing_changelog(
     The new content will be placed below `changelog_marker` in the existing
     changelog.
     """
-    # TODO: Detect existing changelog for this change, since towncrier
-    # is broken.
-    top_line, content = content.split('\n', 1)
+    top_line = content.split('\n', 1)[0]
     append_to_newsfile(
         os.getcwd(),
         changelog_path,
