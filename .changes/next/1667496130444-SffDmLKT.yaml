@@ -1,0 +1,6 @@
+type: bugfix
+section: ''
+issues: {}
+feature_flags: []
+description: |-
+  Fix changelogs missing the version header
