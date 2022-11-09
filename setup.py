@@ -42,6 +42,7 @@ setup(
         'Topic :: Software Development :: Build Tools',
     ],
     install_requires=[
+        'incremental == 22.10.0',
         'towncrier @ git+https://github.com/hawkowl/towncrier.git@ab2b5ac824032c1a0f04409c8e26efebc4f5f59d#egg=towncrier',  # noqa
         'pyyaml >= 5.3',
         'aniso8601 >= 8.0.0',
